@@ -15,6 +15,7 @@ const MAJ_RECENTE_MS = 15 * 60 * 1000;
 let etat = null;
 let affichage = 'accueil';
 let confirmationAffichee = false;
+let changelog = [];
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -27,7 +28,7 @@ function h(tag, props = {}, ...enfants) {
     else if (cle.startsWith('on')) el.addEventListener(cle.slice(2), valeur);
     else el.setAttribute(cle, valeur === true ? '' : valeur);
   }
-  for (const enfant of enfants.flat()) {
+  for (const enfant of enfants.flat(Infinity)) {
     if (enfant === null || enfant === undefined || enfant === false) continue;
     el.append(enfant instanceof Node ? enfant : document.createTextNode(String(enfant)));
   }
@@ -102,6 +103,8 @@ function rendre() {
   rendreComparer();
   rendreReglages();
   rendreConfirmation();
+  rendreMiseAJour();
+  rendreNouveautes();
   rendreEtat();
 }
 
@@ -116,7 +119,7 @@ function rendreRail() {
     else delete p.dataset.etat;
     p.title = s.texte;
   });
-  const fil = { accueil: 'Accueil', comparer: 'Comparer prod / recette', reglages: 'Réglages' }[affichage];
+  const fil = { accueil: 'Accueil', comparer: 'Comparer prod / recette', reglages: 'Réglages', nouveautes: 'Nouveautés' }[affichage];
   if (fil) $('#fil').textContent = fil;
   else {
     const dest = etat.destinations[affichage];
@@ -163,7 +166,7 @@ function rendreAccueil() {
 
   const lignes = etat.journal.slice(0, 8).map((e) => {
     const libelleEnv = e.env === 'prod' ? 'PROD' : e.env === 'recette' ? 'RECETTE' : 'LOGICIEL';
-    const code = /recharg/i.test(e.statut) ? 'live' : /passkey/i.test(e.statut) ? 'attention' : '';
+    const code = /recharg|prêt/i.test(e.statut) ? 'live' : /passkey/i.test(e.statut) ? 'attention' : '';
     return h('tr', {},
       h('td', { texte: heure(e.quand) }),
       h('td', { 'data-env': e.env, texte: libelleEnv }),
@@ -250,12 +253,85 @@ function rendreConfirmation() {
   montrerEcran();
 }
 
+// ---------------------------------------------------------------------------
+// Mise à jour du logiciel et nouveautés
+// ---------------------------------------------------------------------------
+
+function texteEtatMiseAJour(maj) {
+  switch (maj.statut) {
+    case 'inactif': return 'Désactivée (logiciel lancé en mode développement)';
+    case 'attente': return 'Pas encore vérifiée';
+    case 'verification': return 'Recherche en cours…';
+    case 'a-jour': return `À jour, vérifié ${ilYa(maj.verifieLe)}`;
+    case 'telechargement': return `Version ${maj.version} en téléchargement (${maj.pourcent || 0} %)`;
+    case 'pret': return `Version ${maj.version} prête : redémarrez pour l’installer`;
+    case 'erreur': return maj.message;
+    default: return '—';
+  }
+}
+
+function dateLongue(iso) {
+  if (!iso) return '';
+  const [a, m, j] = iso.split('-').map(Number);
+  return new Date(a, m - 1, j).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+function rendreMiseAJour() {
+  const maj = etat.miseAJour;
+  const pret = maj.statut === 'pret';
+  $('#maj').hidden = !pret;
+  if (pret) {
+    $('#maj-titre').textContent = `LFV Cockpit ${maj.version} est prêt`;
+    $('#maj-resume').textContent = maj.notes && maj.notes.length
+      ? maj.notes.filter((n) => n.startsWith('• ')).slice(0, 2).map((n) => n.slice(2)).join(' · ')
+      : 'Redémarrez pour installer la nouvelle version et découvrir ses nouveautés.';
+  }
+  $('#badge-nouveautes').hidden = !(etat.nouveautesAMontrer || pret);
+  $('#logiciel-version').textContent = etat.version;
+  $('#logiciel-etat').textContent = texteEtatMiseAJour(maj);
+  $('#logiciel-verifier').disabled = maj.statut === 'inactif' || maj.statut === 'verification' || maj.statut === 'telechargement';
+}
+
+function rendreNouveautes() {
+  const maj = etat.miseAJour;
+  $('#nouveautes-sous').textContent = `Version installée : ${etat.version}`;
+
+  const prochaine = maj.statut === 'pret' || maj.statut === 'telechargement';
+  $('#prochaine').hidden = !prochaine;
+  if (prochaine) {
+    $('#prochaine-numero').textContent = `Version ${maj.version}`;
+    $('#prochaine').querySelector('.etiquette').textContent = maj.statut === 'pret' ? 'PRÊTE À INSTALLER' : `TÉLÉCHARGEMENT ${maj.pourcent || 0} %`;
+    // Les lignes « • … » sont des nouveautés, les autres des titres de rubrique.
+    const notes = maj.notes && maj.notes.length ? maj.notes : ['• Les détails s’afficheront après l’installation.'];
+    $('#prochaine-notes').replaceChildren(...notes.map((n) => (n.startsWith('• ')
+      ? h('li', { texte: n.slice(2) })
+      : h('li', { class: 'version__rubrique', texte: n }))));
+    $('#prochaine-installer').hidden = maj.statut !== 'pret';
+  }
+
+  const cartes = changelog.map((v) => {
+    const installee = v.version === etat.version;
+    return h('section', { class: `version${installee ? ' version--installee' : ''}` },
+      h('div', { class: 'version__entete' },
+        h('span', { class: 'version__numero', texte: `Version ${v.version}` }),
+        v.date ? h('span', { class: 'version__date', texte: dateLongue(v.date) }) : null,
+        installee ? h('span', { class: 'etiquette', texte: 'INSTALLÉE' }) : null),
+      v.sections.map((section) => [
+        h('h3', { class: 'version__rubrique', texte: section.titre }),
+        h('ul', { class: 'version__liste' }, section.elements.map((e) => h('li', { texte: e }))),
+      ]));
+  });
+  $('#versions').replaceChildren(...cartes);
+}
+
 function rendreEtat() {
   const g = etat.guetteur;
   const court = (env) => (g[env].version ? g[env].version.sha.slice(0, 7) : '—');
   const verifs = [g.prod.verifieLe, g.recette.verifieLe].filter(Boolean).sort();
   $('#etat-versions').textContent = `Prod ${court('prod')} · recette ${court('recette')} · vérifié ${ilYa(verifs[verifs.length - 1])}`;
-  $('#etat-appli').textContent = `LFV Cockpit ${etat.version}`;
+  const maj = etat.miseAJour;
+  const suffixe = maj.statut === 'pret' ? ` · ${maj.version} prête` : maj.statut === 'a-jour' ? ' · à jour' : '';
+  $('#etat-appli').textContent = `LFV Cockpit ${etat.version}${suffixe}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -280,6 +356,7 @@ function montrerEcran() {
   $('#ecran-reglages').hidden = confirmationAffichee || affichage !== 'reglages';
   $('#ecran-comparer').hidden = confirmationAffichee || affichage !== 'comparer';
   $('#ecran-destination').hidden = confirmationAffichee || !estDest;
+  $('#ecran-nouveautes').hidden = confirmationAffichee || affichage !== 'nouveautes';
 }
 
 function apresMiseEnPage(fn) {
@@ -288,6 +365,7 @@ function apresMiseEnPage(fn) {
 
 function aller(cible) {
   affichage = cible;
+  if (cible === 'nouveautes' && etat && etat.nouveautesAMontrer) window.cockpit.nouveautesVues();
   confirmationAffichee = false;
   montrerEcran();
   rendre();
@@ -334,6 +412,10 @@ function brancher() {
   }));
   $('#r-intervalle').addEventListener('change', (e) => window.cockpit.reglages({ intervalleVerificationSecondes: Number(e.target.value) }));
   $('#verifier-maintenant').addEventListener('click', () => window.cockpit.verifierMaintenant());
+  $('#logiciel-verifier').addEventListener('click', () => window.cockpit.majVerifier());
+  $('#maj-voir').addEventListener('click', () => aller('nouveautes'));
+  $('#maj-installer').addEventListener('click', () => window.cockpit.majInstaller());
+  $('#prochaine-installer').addEventListener('click', () => window.cockpit.majInstaller());
 
   const observateur = new ResizeObserver(() => envoyerZones());
   ['#zone-principale', '#zone-gauche', '#zone-droite'].forEach((s) => observateur.observe($(s)));
@@ -351,5 +433,7 @@ function brancher() {
 (async function lancer() {
   brancher();
   etat = await window.cockpit.etat();
-  aller('accueil');
+  changelog = await window.cockpit.changelog();
+  // Première ouverture d'une nouvelle version : on montre d'abord ses nouveautés.
+  aller(etat.nouveautesAMontrer ? 'nouveautes' : 'accueil');
 })();

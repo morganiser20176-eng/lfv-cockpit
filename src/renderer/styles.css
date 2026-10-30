@@ -108,7 +108,7 @@ kbd { font-family: var(--font-mono); font-size: 11px; font-weight: 400; letter-s
 /* ---- Contenu ---- */
 .contenu { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .ecran { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-.ecran--accueil, .ecran--reglages { overflow-y: auto; padding: 22px; gap: 20px; }
+.ecran--accueil, .ecran--reglages, .ecran--nouveautes { overflow-y: auto; padding: 22px; gap: 20px; }
 .ecran--web { background: var(--lfv-web); }
 
 .point { width: 7px; height: 7px; border-radius: 50%; background: currentColor; display: inline-block; flex: none; }
@@ -257,6 +257,37 @@ kbd { font-family: var(--font-mono); font-size: 11px; font-weight: 400; letter-s
 .trajet--recette small { color: #c3d2f2; }
 .trajet__fleche { color: var(--lfv-doux); }
 .etapes { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 8px; line-height: 1.5; }
+
+/* ---- Mise à jour du logiciel ---- */
+.badge { font-family: var(--font-condensed); font-weight: 700; font-size: 11px; letter-spacing: .12em; padding: 2px 7px; border-radius: 4px; background: var(--lfv-jaune); color: var(--lfv-caisse); flex: none !important; }
+.maj { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 14px; padding: 10px 16px; background: linear-gradient(90deg, #2a2417 0%, #15120b 100%); border-bottom: 1px solid var(--lfv-cellule-filet); }
+.maj__logo { width: 34px; height: 34px; object-fit: contain; }
+.maj__texte { flex: 1 1 320px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.maj__texte strong { font-family: var(--font-condensed); font-weight: 900; font-size: 17px; letter-spacing: .06em; text-transform: uppercase; color: var(--lfv-ambre); }
+.maj__texte span { font-size: 13px; color: var(--lfv-libelle); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---- Nouveautés ---- */
+.nouveautes { width: 100%; max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+.nouveautes__entete { display: flex; align-items: center; gap: 18px; }
+.nouveautes__logo { width: 84px; height: auto; }
+.nouveautes__titre { margin: 0; font-family: var(--font-condensed); font-weight: 900; font-size: 40px; letter-spacing: .03em; text-transform: uppercase; }
+.nouveautes__sous { margin: 2px 0 0; color: var(--lfv-clair); }
+.versions { display: flex; flex-direction: column; gap: 14px; }
+.version { display: flex; flex-direction: column; gap: 12px; padding: 18px 20px; border-radius: 14px; background: var(--lfv-nuit-2); border: 1px solid var(--lfv-filet); }
+.version--installee { border-color: rgb(224 166 28 / .55); }
+.version--prochaine { background: var(--lfv-caisse); border-color: var(--lfv-cellule-filet); }
+.version--prochaine .bouton { align-self: flex-start; }
+.version__entete { display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px; }
+.version__numero { font-family: var(--font-condensed); font-weight: 900; font-size: 28px; letter-spacing: .04em; }
+.version--prochaine .version__numero { color: var(--lfv-ambre); }
+.version__date { font-family: var(--font-mono); font-size: 12px; color: var(--lfv-doux); }
+.version__rubrique { margin: 4px 0 0; font-family: var(--font-condensed); font-weight: 700; font-size: 14px; letter-spacing: .14em; text-transform: uppercase; color: var(--lfv-or); }
+.version__liste { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; line-height: 1.5; }
+.version--prochaine .version__liste { list-style: none; padding-left: 0; color: var(--lfv-chiffre); }
+.version--prochaine .version__liste li:not(.version__rubrique)::before { content: "• "; color: var(--lfv-ambre); }
+.etiquette { font-family: var(--font-condensed); font-weight: 700; font-size: 12px; letter-spacing: .14em; padding: 2px 8px; border-radius: 4px; background: rgb(224 166 28 / .16); color: var(--lfv-or); }
+.etiquette--live { background: var(--lfv-jaune); color: var(--lfv-caisse); }
+.carte__logo { width: 30px; height: 30px; object-fit: contain; }
 
 /* ---- Barre d'état ---- */
 .etat { flex: none; display: flex; align-items: center; gap: 18px; padding: 6px 14px; background: var(--lfv-noir); border-top: 1px solid var(--lfv-filet); font-size: 12px; color: var(--lfv-doux); }

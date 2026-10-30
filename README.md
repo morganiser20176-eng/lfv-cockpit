@@ -16,6 +16,8 @@ Plus besoin de jongler entre les onglets de Chrome : un clic (ou `Ctrl+1` à `Ct
 - **Demande confirmation avant « Déploiement production ».**
 - **Compare prod et recette côte à côte**, sur la même page.
 - **Ouvre les liens externes** (YouTube, Discord, FSHub…) dans votre navigateur habituel.
+- **Se met à jour lui-même** : les nouvelles versions se téléchargent en arrière-plan ; un bandeau montre les nouveautés et propose de redémarrer.
+- **Affiche ses nouveautés** : écran « Nouveautés » (historique de toutes les versions), ouvert automatiquement après chaque mise à jour.
 
 ## Connexion au BO : passkey via Windows Hello
 
@@ -31,7 +33,7 @@ Une passkey enregistrée sur votre téléphone marche aussi, via le code QR prop
 
 ## Installation
 
-Télécharger `LFV-Cockpit-Setup-x.y.z.exe` puis l’ouvrir. Tant que l’installeur n’est pas signé par un certificat payant, Windows affiche « Windows a protégé votre ordinateur » : **Informations complémentaires › Exécuter quand même** (une seule fois).
+Télécharger `LFV-Cockpit-Setup-x.y.z.exe` depuis la [dernière version](https://github.com/morganiser20176-eng/lfv-cockpit/releases/latest) puis l’ouvrir. Ensuite, le logiciel se met à jour tout seul. Tant que l’installeur n’est pas signé par un certificat payant, Windows affiche « Windows a protégé votre ordinateur » : **Informations complémentaires › Exécuter quand même** (une seule fois).
 
 ## Développement
 
@@ -52,6 +54,8 @@ LFV_COCKPIT_ORIGINS='{"prod":"http://127.0.0.1:8101","recette":"http://127.0.0.1
 
 Simuler un déploiement sur la fausse recette : ouvrir `http://127.0.0.1:8102/__deployer`.
 
+Voir le bandeau de mise à jour et l’écran « Nouveautés » avec une fausse version 9.9.9 : ajouter `LFV_COCKPIT_FAUSSE_MAJ=1` devant `npm start`.
+
 ### Organisation du code
 
 | Fichier | Rôle |
@@ -61,6 +65,8 @@ Simuler un déploiement sur la fausse recette : ouvrir `http://127.0.0.1:8102/__
 | `src/main/views.js` | Les vues web (site / BO, prod / recette, comparaison) |
 | `src/main/updates.js` | Le guetteur de déploiements (`/version.json`) |
 | `src/main/store.js` | Réglages et journal des mises à jour |
+| `src/main/mise-a-jour.js` | La mise à jour automatique du logiciel (electron-updater) |
+| `src/main/changelog.js` | Lecture de `CHANGELOG.md` et comparaison de versions |
 | `src/preload/shell-preload.js` | Le pont, limité, entre l’interface et le moteur |
 | `src/renderer/` | L’interface (accueil, rail, réglages), aux couleurs du site |
 
@@ -71,8 +77,18 @@ Simuler un déploiement sur la fausse recette : ouvrir `http://127.0.0.1:8102/__
 - Permissions du navigateur refusées par défaut (caméra, micro, notifications, géolocalisation…).
 - Interface protégée par une politique de sécurité du contenu stricte : aucun script ni style en ligne.
 
-## Fabriquer l’installeur
+## Versions, nouveautés et publication
 
-L’installeur est fabriqué par GitHub Actions sur une machine Windows (`.github/workflows/installeur-windows.yml`), **uniquement** quand la version change dans `package.json`, sur un tag `vX.Y.Z` ou à la main. Jamais à chaque push : le temps de calcul GitHub est partagé avec les déploiements du site.
+- **Numérotation** `MAJEUR.MINEUR.CORRECTIF` : correctif pour une correction, mineur pour une nouvelle fonction, majeur pour un changement important de fonctionnement.
+- **`CHANGELOG.md` est la source unique des nouveautés.** Chaque version y a sa rubrique `## [x.y.z] – AAAA-MM-JJ` avec ses sous-rubriques (`### Nouveautés`, `### Améliorations`, `### Corrections`). Elle est affichée dans l’écran « Nouveautés » et devient le texte de la version sur GitHub.
+- Les tests refusent une version de `package.json` sans sa rubrique datée dans `CHANGELOG.md`.
+
+Publier une version :
+
+1. Ajouter la rubrique de la nouvelle version en haut de `CHANGELOG.md`.
+2. Changer la version : `npm version 0.3.0 --no-git-tag-version`.
+3. Pousser. Le workflow `.github/workflows/installeur-windows.yml` (machine Windows de GitHub) lance les tests, fabrique l’installeur et **publie la version** (page Releases : installeur, `latest.yml`, notes). Les logiciels installés la trouvent d’eux-mêmes dans les 4 heures, ou tout de suite via Réglages › Rechercher une mise à jour.
+
+Le workflow ne tourne **que** quand la version change (ou à la main) : le temps de calcul GitHub est partagé avec les déploiements du site. Une version déjà publiée n’est jamais republiée.
 
 Ce dépôt est indépendant du dépôt du site : il ne le modifie jamais.

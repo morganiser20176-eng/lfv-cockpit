@@ -14,6 +14,7 @@ const REGLAGES_PAR_DEFAUT = {
   intervalleVerificationSecondes: 60,
   notificationsWindows: true,
   confirmerDeploiementProduction: true,
+  miseAJourAutomatique: true,
 };
 
 const INTERVALLES_AUTORISES = [30, 60, 300];
@@ -33,13 +34,14 @@ function normaliserReglages(brut) {
 class Store {
   constructor(dossier) {
     this.fichier = path.join(dossier, 'lfv-cockpit.json');
-    this.donnees = { reglages: { ...REGLAGES_PAR_DEFAUT }, versions: {}, journal: [] };
+    this.donnees = { reglages: { ...REGLAGES_PAR_DEFAUT }, versions: {}, journal: [], derniereVersionVue: null };
     try {
       const brut = JSON.parse(fs.readFileSync(this.fichier, 'utf8'));
       this.donnees = {
         reglages: normaliserReglages(brut.reglages),
         versions: brut.versions && typeof brut.versions === 'object' ? brut.versions : {},
         journal: Array.isArray(brut.journal) ? brut.journal.slice(0, TAILLE_MAX_JOURNAL) : [],
+        derniereVersionVue: typeof brut.derniereVersionVue === 'string' ? brut.derniereVersionVue : null,
       };
     } catch {
       // Premier lancement ou fichier illisible : on repart des valeurs par défaut.
@@ -67,6 +69,16 @@ class Store {
 
   get journal() {
     return this.donnees.journal;
+  }
+
+  /** Version du logiciel dont l'utilisateur a déjà vu les nouveautés. */
+  get derniereVersionVue() {
+    return this.donnees.derniereVersionVue;
+  }
+
+  marquerVersionVue(version) {
+    this.donnees.derniereVersionVue = version;
+    this.enregistrer();
   }
 
   ajouterAuJournal(entree) {

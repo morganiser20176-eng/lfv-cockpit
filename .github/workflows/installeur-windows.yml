@@ -1,11 +1,12 @@
-name: Installeur Windows
+name: Version Windows
 
-# Fabrique l'installeur LFV-Cockpit-Setup-x.y.z.exe.
+# Fabrique l'installeur LFV-Cockpit-Setup-x.y.z.exe et PUBLIE la version
+# (page « Releases » du dépôt, notes tirées de CHANGELOG.md). C'est là que
+# LFV Cockpit va chercher ses mises à jour automatiques.
 #
-# Volontairement PAS à chaque push : le temps de calcul GitHub est partagé
-# avec les déploiements du site Les Fous Volants. Seulement quand la version
-# change (package.json), quand ce fichier change, sur un tag vX.Y.Z, ou à la
-# main (onglet Actions).
+# Volontairement PAS à chaque push : seulement quand la version change
+# (package.json), quand ce fichier change, sur un tag vX.Y.Z, ou à la main
+# (onglet Actions). Une version déjà publiée n'est jamais republiée.
 on:
   workflow_dispatch:
   push:
@@ -19,14 +20,14 @@ on:
       - .github/workflows/installeur-windows.yml
 
 permissions:
-  contents: read
+  contents: write # créer la version (Release) et y déposer l'installeur
 
 concurrency:
-  group: installeur-windows-${{ github.ref }}
-  cancel-in-progress: true
+  group: version-windows
+  cancel-in-progress: false
 
 jobs:
-  installeur:
+  version:
     runs-on: windows-latest
     timeout-minutes: 30
     steps:
@@ -43,10 +44,56 @@ jobs:
       - name: Tests
         run: npm test
 
+      - name: Lire la version
+        id: version
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if gh release view "v$VERSION" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "deja_publiee=oui" >> "$GITHUB_OUTPUT"
+            echo "La version $VERSION est déjà publiée : fabrication seule, sans republier."
+          else
+            echo "deja_publiee=non" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Notes de version (depuis CHANGELOG.md)
+        run: node outils/notes-de-version.js
+
       - name: Fabriquer l'installeur
         run: npx electron-builder --win nsis --publish never
 
-      - name: Mettre l'installeur à disposition
+      - name: Vérifier les fichiers de mise à jour
+        shell: bash
+        run: |
+          V="${{ steps.version.outputs.version }}"
+          test -f "dist/LFV-Cockpit-Setup-$V.exe"
+          test -f "dist/LFV-Cockpit-Setup-$V.exe.blockmap"
+          test -f dist/latest.yml
+          test -f dist/win-unpacked/resources/app-update.yml
+          cat dist/latest.yml
+          cat dist/win-unpacked/resources/app-update.yml
+
+      - name: Publier la version
+        if: steps.version.outputs.deja_publiee == 'non'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          V="${{ steps.version.outputs.version }}"
+          gh release create "v$V" \
+            "dist/LFV-Cockpit-Setup-$V.exe" \
+            "dist/LFV-Cockpit-Setup-$V.exe.blockmap" \
+            dist/latest.yml \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "LFV Cockpit $V" \
+            --notes-file build/release-notes.md \
+            --latest
+
+      - name: Garder l'installeur avec la fabrication
         uses: actions/upload-artifact@v4
         with:
           name: LFV-Cockpit-Setup

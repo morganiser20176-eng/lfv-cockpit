@@ -19,6 +19,10 @@ contextBridge.exposeInMainWorld('cockpit', {
   reglages: (changements) => ipcRenderer.invoke('reglages', changements),
   effacerSession: (env) => ipcRenderer.invoke('effacer-session', env),
   verifierMaintenant: () => ipcRenderer.invoke('verifier-maintenant'),
+  changelog: () => ipcRenderer.invoke('changelog'),
+  nouveautesVues: () => ipcRenderer.invoke('nouveautes-vues'),
+  majVerifier: () => ipcRenderer.invoke('maj-verifier'),
+  majInstaller: () => ipcRenderer.invoke('maj-installer'),
   surEtat: (rappel) => ipcRenderer.on('etat', (_e, etat) => rappel(etat)),
   surAller: (rappel) => ipcRenderer.on('aller', (_e, cible) => rappel(cible)),
 });

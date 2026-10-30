@@ -41,6 +41,10 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16"/></svg>
           <span>Comparer prod / recette</span><kbd>Ctrl+5</kbd>
         </button>
+        <button class="rail__outil" data-aller="nouveautes">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.4 5.2 5.6.6-4.2 3.8 1.2 5.6L12 15.4 7 18.2l1.2-5.6L4 8.8l5.6-.6z"/></svg>
+          <span>Nouveautés</span><span class="badge" id="badge-nouveautes" hidden>NOUVEAU</span>
+        </button>
         <button class="rail__outil" data-aller="reglages">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>
           <span>Réglages</span>
@@ -59,6 +63,17 @@
     </nav>
 
     <main class="contenu">
+
+      <!-- MISE À JOUR DU LOGICIEL (prête à installer) -->
+      <div class="maj" id="maj" role="status" hidden>
+        <img src="assets/images/logo-lfv.webp" alt="" class="maj__logo">
+        <div class="maj__texte">
+          <strong id="maj-titre"></strong>
+          <span id="maj-resume"></span>
+        </div>
+        <button class="bouton" id="maj-voir">Voir les nouveautés</button>
+        <button class="bouton bouton--or" id="maj-installer">Redémarrer et mettre à jour</button>
+      </div>
 
       <!-- ACCUEIL -->
       <section class="ecran ecran--accueil" id="ecran-accueil">
@@ -155,6 +170,28 @@
         </div>
       </section>
 
+      <!-- NOUVEAUTÉS -->
+      <section class="ecran ecran--nouveautes" id="ecran-nouveautes" hidden>
+        <div class="nouveautes">
+          <div class="nouveautes__entete">
+            <img src="assets/images/logo-lfv.webp" alt="" class="nouveautes__logo">
+            <div>
+              <h1 class="nouveautes__titre">Nouveautés</h1>
+              <p class="nouveautes__sous" id="nouveautes-sous"></p>
+            </div>
+          </div>
+          <section class="version version--prochaine" id="prochaine" hidden>
+            <div class="version__entete">
+              <span class="version__numero" id="prochaine-numero"></span>
+              <span class="etiquette etiquette--live">PRÊTE À INSTALLER</span>
+            </div>
+            <ul class="version__liste" id="prochaine-notes"></ul>
+            <button class="bouton bouton--or" id="prochaine-installer">Redémarrer et mettre à jour</button>
+          </section>
+          <div class="versions" id="versions"></div>
+        </div>
+      </section>
+
       <!-- RÉGLAGES -->
       <section class="ecran ecran--reglages" id="ecran-reglages" hidden>
         <div class="reglages">
@@ -162,7 +199,7 @@
 
           <div class="reglages__grille">
             <section class="carte">
-              <h2 class="carte__titre"><span class="point point--live" aria-hidden="true"></span>Mises à jour automatiques</h2>
+              <h2 class="carte__titre"><span class="point point--live" aria-hidden="true"></span>Mises à jour des sites</h2>
               <label class="option" for="r-deploiement"><input type="checkbox" id="r-deploiement" data-reglage="rechargerApresDeploiement"><span><strong>Recharger quand une nouvelle version est déployée</strong><small>Prod et recette, site et BO. Détecté grâce au fichier de version publié à chaque déploiement.</small></span></label>
               <label class="option" for="r-enregistrement"><input type="checkbox" id="r-enregistrement" data-reglage="rechargerSiteApresEnregistrement"><span><strong>Recharger le site après un enregistrement dans le BO</strong><small>Vous modifiez dans le BO prod : le site prod est à jour quand vous y retournez. Idem en recette.</small></span></label>
               <label class="option" for="r-saisie"><input type="checkbox" id="r-saisie" data-reglage="jamaisRechargerPendantSaisie"><span><strong>Ne jamais recharger un BO pendant une saisie</strong><small>Un bandeau propose de recharger quand vous avez fini. Rien n’est perdu.</small></span></label>
@@ -188,6 +225,19 @@
           </div>
 
           <div class="reglages__grille" id="sessions"></div>
+
+          <section class="carte carte--logiciel">
+            <h2 class="carte__titre"><img src="assets/images/logo-lfv.webp" alt="" class="carte__logo">Le logiciel</h2>
+            <dl>
+              <dt>Version installée</dt><dd class="mono" id="logiciel-version"></dd>
+              <dt>Mise à jour</dt><dd id="logiciel-etat"></dd>
+            </dl>
+            <label class="option" for="r-maj-auto"><input type="checkbox" id="r-maj-auto" data-reglage="miseAJourAutomatique"><span><strong>Mettre à jour LFV Cockpit automatiquement</strong><small>Les nouvelles versions se téléchargent en arrière-plan. Elles s’installent quand vous redémarrez le logiciel.</small></span></label>
+            <div class="carte__actions">
+              <button class="bouton" id="logiciel-verifier">Rechercher une mise à jour</button>
+              <button class="bouton" data-aller="nouveautes">Voir les nouveautés</button>
+            </div>
+          </section>
 
           <section class="carte carte--depart">
             <h2 class="carte__titre carte__titre--ambre">Première connexion</h2>

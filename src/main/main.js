@@ -1,11 +1,14 @@
 'use strict';
 
+const fs = require('node:fs');
 const path = require('node:path');
 const { app, BrowserWindow, ipcMain, Notification, clipboard, net, shell } = require('electron');
 const { lireOrigines, construireEnvironnements, construireDestinations, estOuvrableEnExterne } = require('./environments');
 const { Store } = require('./store');
 const { GuetteurDeVersions } = require('./updates');
 const { GestionnaireDeVues } = require('./views');
+const { lireChangelog, comparerVersions } = require('./changelog');
+const { MiseAJour } = require('./mise-a-jour');
 
 const RACINE = path.join(__dirname, '..');
 const environnements = construireEnvironnements(lireOrigines());
@@ -15,6 +18,10 @@ let fenetre = null;
 let store = null;
 let vues = null;
 let guetteur = null;
+let miseAJour = null;
+let changelog = [];
+// Nouveautés à montrer au démarrage : première ouverture de cette version.
+let nouveautesAMontrer = false;
 // Ce que l'interface affiche : 'accueil', 'reglages', 'comparer' ou un id de destination.
 let affichage = 'accueil';
 let confirmation = null;
@@ -93,7 +100,41 @@ function demarrer() {
   guetteur.on('etat', () => pousserEtat());
   guetteur.demarrer(store.reglages.intervalleVerificationSecondes);
 
+  changelog = lireChangelog(fs.readFileSync(path.join(RACINE, '..', 'CHANGELOG.md'), 'utf8'));
+  noterVersionInstallee();
+  demarrerMiseAJour();
+
   brancherIpc();
+}
+
+/** Première ouverture d'une nouvelle version : journal + écran « Nouveautés ». */
+function noterVersionInstallee() {
+  const actuelle = app.getVersion();
+  const vue = store.derniereVersionVue;
+  if (vue === actuelle) return;
+  nouveautesAMontrer = true;
+  if (vue && comparerVersions(vue, actuelle) < 0) {
+    store.ajouterAuJournal({ env: 'logiciel', evenement: `LFV Cockpit ${actuelle} installé`, statut: 'À jour' });
+  }
+}
+
+function demarrerMiseAJour() {
+  let updater = null;
+  if (app.isPackaged) {
+    ({ autoUpdater: updater } = require('electron-updater'));
+  } else if (process.env.LFV_COCKPIT_FAUSSE_MAJ) {
+    updater = new (require('../../outils/fausse-maj').FausseMiseAJour)();
+  }
+  miseAJour = new MiseAJour({ updater, active: Boolean(updater) });
+  miseAJour.on('etat', () => pousserEtat());
+  miseAJour.on('pret', ({ version }) => {
+    store.ajouterAuJournal({ env: 'logiciel', evenement: `LFV Cockpit ${version} téléchargé`, statut: 'Prêt à installer' });
+    if (store.reglages.notificationsWindows && Notification.isSupported()) {
+      new Notification({ title: `LFV Cockpit ${version} est prêt`, body: 'Redémarrez le logiciel pour l’installer et découvrir les nouveautés.', silent: true }).show();
+    }
+    pousserEtat();
+  });
+  if (store.reglages.miseAJourAutomatique) miseAJour.demarrer();
 }
 
 function surNouvelleVersion({ env, version, precedente, verdict }) {
@@ -147,6 +188,8 @@ function etatComplet() {
     confirmation,
     avis,
     version: app.getVersion(),
+    miseAJour: miseAJour ? miseAJour.etat : { statut: 'attente' },
+    nouveautesAMontrer,
   };
 }
 
@@ -207,9 +250,11 @@ function brancherIpc() {
   });
 
   ipcMain.handle('reglages', (_e, changements) => {
-    const avant = store.reglages.intervalleVerificationSecondes;
+    const avant = store.reglages;
     const apres = store.modifierReglages(changements || {});
-    if (apres.intervalleVerificationSecondes !== avant) guetteur.demarrer(apres.intervalleVerificationSecondes);
+    if (apres.intervalleVerificationSecondes !== avant.intervalleVerificationSecondes) guetteur.demarrer(apres.intervalleVerificationSecondes);
+    if (apres.miseAJourAutomatique && !avant.miseAJourAutomatique) miseAJour.demarrer();
+    if (!apres.miseAJourAutomatique) miseAJour.arreter();
     pousserEtat();
     return apres;
   });
@@ -222,4 +267,16 @@ function brancherIpc() {
   });
 
   ipcMain.handle('verifier-maintenant', () => guetteur.verifierTout());
+
+  ipcMain.handle('changelog', () => changelog);
+
+  ipcMain.handle('nouveautes-vues', () => {
+    nouveautesAMontrer = false;
+    store.marquerVersionVue(app.getVersion());
+    pousserEtat();
+  });
+
+  ipcMain.handle('maj-verifier', () => miseAJour.verifier());
+
+  ipcMain.handle('maj-installer', () => miseAJour.installerMaintenant());
 }

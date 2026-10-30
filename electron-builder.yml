@@ -8,6 +8,7 @@ directories:
 
 files:
   - package.json
+  - CHANGELOG.md
   - src/**/*
 
 win:
@@ -30,3 +31,11 @@ nsis:
   installerLanguages:
     - fr_FR
   language: "1036"
+
+# Où LFV Cockpit cherche ses mises à jour : les « Releases » de ce dépôt.
+# (La publication elle-même est faite par le workflow, avec gh.)
+publish:
+  provider: github
+  owner: morganiser20176-eng
+  repo: lfv-cockpit
+  releaseType: release

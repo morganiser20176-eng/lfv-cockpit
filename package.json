@@ -1,7 +1,7 @@
 {
   "name": "lfv-cockpit",
   "productName": "LFV Cockpit",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Les sites et back-offices Les Fous Volants (prod et recette) dans une seule fenêtre.",
   "author": "Les Fous Volants",
   "license": "UNLICENSED",
@@ -15,5 +15,8 @@
   "devDependencies": {
     "electron": "44.7.1",
     "electron-builder": "26.17.0"
+  },
+  "dependencies": {
+    "electron-updater": "6.8.10"
   }
 }

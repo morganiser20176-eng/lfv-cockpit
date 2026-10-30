@@ -49,3 +49,12 @@ test('le journal est limité à 50 entrées', () => {
   assert.equal(s.journal.length, 50);
   assert.equal(s.journal[0].evenement, 'e59');
 });
+
+test('la dernière version dont on a vu les nouveautés est mémorisée', () => {
+  const dossier = dossierTemporaire();
+  const s = new Store(dossier);
+  assert.equal(s.derniereVersionVue, null);
+  assert.equal(s.reglages.miseAJourAutomatique, true);
+  s.marquerVersionVue('0.2.0');
+  assert.equal(new Store(dossier).derniereVersionVue, '0.2.0');
+});
