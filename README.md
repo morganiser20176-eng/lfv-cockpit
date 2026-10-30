@@ -73,6 +73,6 @@ Simuler un déploiement sur la fausse recette : ouvrir `http://127.0.0.1:8102/__
 
 ## Fabriquer l’installeur
 
-L’installeur est fabriqué par GitHub Actions sur une machine Windows (`.github/workflows/installeur-windows.yml`), **uniquement** à la publication d’une version (tag `vX.Y.Z`) ou à la main. Jamais à chaque push : le temps de calcul GitHub est partagé avec les déploiements du site.
+L’installeur est fabriqué par GitHub Actions sur une machine Windows (`.github/workflows/installeur-windows.yml`), **uniquement** quand la version change dans `package.json`, sur un tag `vX.Y.Z` ou à la main. Jamais à chaque push : le temps de calcul GitHub est partagé avec les déploiements du site.
 
 Ce dépôt est indépendant du dépôt du site : il ne le modifie jamais.

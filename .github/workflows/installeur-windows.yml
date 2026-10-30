@@ -3,13 +3,20 @@ name: Installeur Windows
 # Fabrique l'installeur LFV-Cockpit-Setup-x.y.z.exe.
 #
 # Volontairement PAS à chaque push : le temps de calcul GitHub est partagé
-# avec les déploiements du site Les Fous Volants. Seulement à la publication
-# d'une version (tag vX.Y.Z) ou à la main (onglet Actions).
+# avec les déploiements du site Les Fous Volants. Seulement quand la version
+# change (package.json), quand ce fichier change, sur un tag vX.Y.Z, ou à la
+# main (onglet Actions).
 on:
   workflow_dispatch:
   push:
     tags:
       - "v*"
+    branches:
+      - main
+      - "claude/**"
+    paths:
+      - package.json
+      - .github/workflows/installeur-windows.yml
 
 permissions:
   contents: read
