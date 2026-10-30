@@ -16,6 +16,8 @@ let etat = null;
 let affichage = 'accueil';
 let confirmationAffichee = false;
 let changelog = [];
+// Entrée du journal affichée dans l'écran « Détail d'une mise à jour ».
+let detailId = null;
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -105,6 +107,7 @@ function rendre() {
   rendreConfirmation();
   rendreMiseAJour();
   rendreNouveautes();
+  rendreDetail();
   rendreEtat();
 }
 
@@ -119,7 +122,7 @@ function rendreRail() {
     else delete p.dataset.etat;
     p.title = s.texte;
   });
-  const fil = { accueil: 'Accueil', comparer: 'Comparer prod / recette', reglages: 'Réglages', nouveautes: 'Nouveautés' }[affichage];
+  const fil = { accueil: 'Accueil', comparer: 'Comparer prod / recette', reglages: 'Réglages', nouveautes: 'Nouveautés', detail: 'Détail d’une mise à jour' }[affichage];
   if (fil) $('#fil').textContent = fil;
   else {
     const dest = etat.destinations[affichage];
@@ -141,7 +144,8 @@ function rendreAccueil() {
   for (const env of ['prod', 'recette']) {
     const maj = derniereMaj(env);
     if (maj && Date.now() - new Date(maj.quand).getTime() < 12 * 3600 * 1000) {
-      phrases.push(`${env === 'prod' ? 'La prod' : 'La recette'} a reçu une nouvelle version à ${heure(maj.quand)}, ses pages ont été rechargées.`);
+      const resume = resumeDetail(maj.detail);
+      phrases.push(`${env === 'prod' ? 'La prod' : 'La recette'} a reçu une nouvelle version à ${heure(maj.quand)}${resume ? ` : ${resume}` : ''}. Ses pages ont été rechargées.`);
     }
   }
   for (const id of ['prod-bo', 'rec-bo']) {
@@ -167,11 +171,13 @@ function rendreAccueil() {
   const lignes = etat.journal.slice(0, 8).map((e) => {
     const libelleEnv = e.env === 'prod' ? 'PROD' : e.env === 'recette' ? 'RECETTE' : 'LOGICIEL';
     const code = /recharg|prêt/i.test(e.statut) ? 'live' : /passkey/i.test(e.statut) ? 'attention' : '';
+    const resume = resumeDetail(e.detail);
     return h('tr', {},
       h('td', { texte: heure(e.quand) }),
       h('td', { 'data-env': e.env, texte: libelleEnv }),
-      h('td', { texte: e.evenement }),
-      h('td', { 'data-statut': code || null, texte: e.statut }));
+      h('td', {}, e.evenement, resume ? h('span', { class: 'panneau__resume', texte: resume }) : null),
+      h('td', { 'data-statut': code || null, texte: e.statut }),
+      h('td', {}, e.sha ? h('button', { class: 'panneau__detail', onclick: () => voirDetail(e.id), texte: 'DÉTAIL ›' }) : null));
   });
   $('#journal').replaceChildren(...lignes);
   $('#journal-vide').hidden = lignes.length > 0;
@@ -206,8 +212,9 @@ function rendreDestination() {
   $('#avis').hidden = !avisVisible;
   if (avisVisible) {
     $('#avis').dataset.ton = avis.ton;
-    $('#avis-texte').textContent = avis.texte;
+    $('#avis-texte').textContent = avis.resume ? `${avis.texte} ${avis.resume}.` : avis.texte;
   }
+  $('#avis-detail').hidden = !(avisVisible && avis.entreeId);
 }
 
 function rendreComparer() {
@@ -324,6 +331,74 @@ function rendreNouveautes() {
   $('#versions').replaceChildren(...cartes);
 }
 
+// ---------------------------------------------------------------------------
+// Détail d'une mise à jour du site
+// ---------------------------------------------------------------------------
+
+function resumeDetail(detail) {
+  if (!detail || detail.statut !== 'ok' || !detail.changements || detail.changements.length === 0) return null;
+  const [premier, ...reste] = detail.changements;
+  return reste.length ? `${premier.titre} (+${reste.length})` : premier.titre;
+}
+
+function dateHeure(iso) {
+  const d = new Date(iso);
+  return `${d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })} à ${d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
+}
+
+const MESSAGES_DETAIL = {
+  chargement: () => 'Lecture du détail dans le BO…',
+  connexion: (env) => `Le détail est protégé par votre passkey : connectez-vous au BO ${env.libelle.toLowerCase()} pour le voir. Il s’affichera tout seul ici.`,
+  interdit: () => 'Votre compte BO n’a pas le droit « Déploiement » nécessaire pour voir ce détail.',
+  erreur: () => 'Le détail n’a pas pu être lu. Le site ne le publie peut-être pas encore : réessayez plus tard.',
+  perime: () => 'Une version plus récente a été déployée depuis : le BO ne décrit que la version en ligne.',
+  ancien: () => 'Cette mise à jour a été détectée avant que LFV Cockpit sache en lire le détail.',
+};
+
+function rendreDetail() {
+  if (affichage !== 'detail') return;
+  const entree = etat.journal.find((e) => e.id === detailId);
+  if (!entree) {
+    $('#detail-titre').textContent = 'Mise à jour introuvable';
+    $('#changements').replaceChildren();
+    return;
+  }
+  const env = etat.environnements[entree.env];
+  const puce = $('#detail-puce');
+  puce.textContent = env.etiquette;
+  puce.className = `puce puce--${entree.env}`;
+  $('#detail-titre').textContent = `Nouvelle version ${entree.sha.slice(0, 7)}`;
+  $('#detail-sous').textContent = `${dateHeure(entree.quand)}${entree.precedente ? ` · remplace la version ${entree.precedente.slice(0, 7)}` : ''}`;
+
+  const detail = entree.detail || { statut: 'ancien' };
+  const message = detail.statut === 'ok'
+    ? (detail.changements && detail.changements.length ? null : (detail.indisponible || 'Aucun changement décrit pour cette version.'))
+    : MESSAGES_DETAIL[detail.statut](env);
+  $('#detail-etat').hidden = !message;
+  $('#detail-etat-texte').textContent = message || '';
+  $('#detail-ouvrir-bo').hidden = detail.statut !== 'connexion';
+  $('#detail-reessayer').hidden = !['connexion', 'erreur'].includes(detail.statut);
+
+  const lieu = (chemin) => (/^\/admin(\/|$|\?)/.test(chemin) ? `BO ${env.etiquette.toLowerCase()}` : `Site ${env.etiquette.toLowerCase()}`);
+  const cartes = (detail.statut === 'ok' && detail.changements ? detail.changements : []).map((c) => h('article', { class: 'changement' },
+    h('div', { class: 'changement__entete' },
+      c.pr ? h('span', { class: 'etiquette', texte: `#${c.pr}` }) : null,
+      h('h2', { class: 'changement__titre', texte: c.titre })),
+    c.resume ? h('p', { class: 'changement__resume', texte: c.resume }) : null,
+    c.lignes.length ? h('ul', { class: 'version__liste' }, c.lignes.map((l) => h('li', { texte: l }))) : null,
+    c.liens.length ? h('div', { class: 'changement__liens' },
+      c.liens.map((chemin) => h('button', { class: 'lien-page', onclick: () => ouvrirChemin(entree.env, chemin) },
+        h('span', { class: 'lien-page__lieu', texte: lieu(chemin) }),
+        h('span', { class: 'mono', texte: chemin }),
+        '→')),
+      c.liensDeduits ? h('small', { texte: 'Pages déduites des fichiers modifiés par ce changement.' }) : null) : null));
+  $('#changements').replaceChildren(...cartes);
+
+  const autres = detail.statut === 'ok' && detail.autres ? detail.autres : [];
+  $('#autres').hidden = autres.length === 0;
+  $('#autres-liste').replaceChildren(...autres.map((a) => h('li', { texte: a })));
+}
+
 function rendreEtat() {
   const g = etat.guetteur;
   const court = (env) => (g[env].version ? g[env].version.sha.slice(0, 7) : '—');
@@ -357,6 +432,7 @@ function montrerEcran() {
   $('#ecran-comparer').hidden = confirmationAffichee || affichage !== 'comparer';
   $('#ecran-destination').hidden = confirmationAffichee || !estDest;
   $('#ecran-nouveautes').hidden = confirmationAffichee || affichage !== 'nouveautes';
+  $('#ecran-detail').hidden = confirmationAffichee || affichage !== 'detail';
 }
 
 function apresMiseEnPage(fn) {
@@ -369,7 +445,20 @@ function aller(cible) {
   confirmationAffichee = false;
   montrerEcran();
   rendre();
-  apresMiseEnPage(() => window.cockpit.afficher(cible, zonesPour(cible)));
+  return new Promise((fini) => apresMiseEnPage(() => window.cockpit.afficher(cible, zonesPour(cible)).then(fini)));
+}
+
+function voirDetail(id) {
+  detailId = id;
+  aller('detail');
+}
+
+/** Bouton « Où voir » : la bonne vue (site ou BO) de l'environnement, à la bonne page. */
+async function ouvrirChemin(env, chemin) {
+  const bo = /^\/admin(\/|$|\?)/.test(chemin);
+  const destination = env === 'prod' ? (bo ? 'prod-bo' : 'prod-site') : (bo ? 'rec-bo' : 'rec-site');
+  await aller(destination);
+  await window.cockpit.ouvrirChemin(env, chemin);
 }
 
 function envoyerZones() {
@@ -400,6 +489,13 @@ function brancher() {
     if (dest) window.cockpit.rechargerMaintenant(dest.env);
   });
   $('#avis-fermer').addEventListener('click', () => window.cockpit.fermerAvis());
+  $('#avis-detail').addEventListener('click', () => etat.avis && etat.avis.entreeId && voirDetail(etat.avis.entreeId));
+  $('#detail-retour').addEventListener('click', () => aller('accueil'));
+  $('#detail-reessayer').addEventListener('click', () => detailId && window.cockpit.reessayerDetail(detailId));
+  $('#detail-ouvrir-bo').addEventListener('click', () => {
+    const entree = etat.journal.find((e) => e.id === detailId);
+    if (entree) aller(entree.env === 'prod' ? 'prod-bo' : 'rec-bo');
+  });
   $('#form-comparer').addEventListener('submit', (e) => {
     e.preventDefault();
     window.cockpit.comparerChemin($('#chemin').value);

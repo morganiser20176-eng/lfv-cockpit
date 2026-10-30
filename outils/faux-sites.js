@@ -26,6 +26,7 @@ input,textarea{display:block;margin:6px 0 14px;padding:8px;width:320px;backgroun
 
 function demarrer(env, port) {
   let sha = crypto.randomBytes(20).toString('hex');
+  let precedente = null;
   let deployeLe = new Date().toISOString();
 
   http.createServer((req, res) => {
@@ -41,6 +42,7 @@ function demarrer(env, port) {
       return res.end(JSON.stringify({ sha, deployed_at: deployeLe }));
     }
     if (url.pathname === '/__deployer') {
+      precedente = sha;
       sha = crypto.randomBytes(20).toString('hex');
       deployeLe = new Date().toISOString();
       return html(200, page('Déployé', env, `<p>Nouvelle version ${sha.slice(0, 7)} « déployée ».</p>`));
@@ -57,6 +59,28 @@ function demarrer(env, port) {
     }
     if (url.pathname === '/admin/passkey/assertion/verify' && req.method === 'POST') {
       return html(302, '', { Location: '/admin', 'Set-Cookie': 'connecte=1; Path=/; HttpOnly; SameSite=Lax' });
+    }
+    // Comme le vrai BO : détail de la version en ligne, réservé à une session ouverte.
+    if (url.pathname === '/admin/cockpit/version') {
+      if (!connecte) {
+        if (/json/.test(req.headers.accept || '')) {
+          res.writeHead(401, { 'Content-Type': 'application/json' });
+          return res.end('{"message":"Unauthenticated."}');
+        }
+        return html(302, '', { Location: '/admin/login' });
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+      return res.end(JSON.stringify({
+        sha,
+        deployed_at: deployeLe,
+        precedente,
+        changements: precedente ? [
+          { pr: 641, titre: 'Tours : la liste des étapes se charge plus vite', resume: 'Les tours longs s’affichent sans attendre toutes les photos.', lignes: ['Les tours s’affichent plus vite', 'BO : aperçu des étapes avant publication'], liens: ['/tours', '/admin/tours/1/edit'], liens_deduits: false },
+          { pr: 640, titre: 'Déploiement production : message plus clair', resume: null, lignes: [], liens: ['/admin/deploiement-production'], liens_deduits: true },
+        ] : [],
+        autres: precedente ? ['Journal : témoin du déclencheur'] : [],
+        indisponible: precedente ? null : 'Aucune version précédente connue : impossible de comparer.',
+      }));
     }
     if (url.pathname.startsWith('/admin')) {
       if (!connecte) return html(302, '', { Location: '/admin/login' });

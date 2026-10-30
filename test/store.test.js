@@ -58,3 +58,13 @@ test('la dernière version dont on a vu les nouveautés est mémorisée', () => 
   s.marquerVersionVue('0.2.0');
   assert.equal(new Store(dossier).derniereVersionVue, '0.2.0');
 });
+
+test('une entrée du journal peut être complétée après coup (détail d’une version)', () => {
+  const dossier = dossierTemporaire();
+  const s = new Store(dossier);
+  const e = s.ajouterAuJournal({ env: 'recette', sha: 'abc1234', evenement: 'Nouvelle version abc1234', statut: 'Pages rechargées' });
+  assert.ok(e.id);
+  s.modifierEntree(e.id, { detail: { statut: 'ok', changements: [] } });
+  assert.equal(new Store(dossier).entree(e.id).detail.statut, 'ok');
+  assert.equal(s.modifierEntree('inconnue', {}), null);
+});

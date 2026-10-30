@@ -11,6 +11,7 @@ Plus besoin de jongler entre les onglets de Chrome : un clic (ou `Ctrl+1` à `Ct
 
 - **Affiche les vrais sites et les vrais BO.** Rien n’est copié en local : ce que vous enregistrez dans le BO prod est en ligne sur la prod, ce que vous enregistrez dans le BO recette va sur la recette.
 - **Garde prod et recette séparées.** Chaque environnement a sa propre session (cookies), chiffrée par Chromium avec votre compte Windows.
+- **Dit précisément ce qui a changé** à chaque mise à jour du site : les changements (PR) de la version, leur résumé et des boutons qui ouvrent directement les pages concernées. Ce détail est servi par le BO (`/admin/cockpit/version`, protégé par la passkey), jamais par le `version.json` public.
 - **Se met à jour tout seul quand le site change.** À chaque déploiement, le site publie `/version.json`. LFV Cockpit le relit régulièrement (60 s par défaut) et recharge les pages quand la version change. Un BO en cours de saisie (`/create`, `/edit`) n’est jamais rechargé de force : un bandeau propose de le faire.
 - **Recharge le site après un enregistrement dans le BO** du même environnement, au moment où vous y retournez.
 - **Demande confirmation avant « Déploiement production ».**
@@ -67,6 +68,7 @@ Voir le bandeau de mise à jour et l’écran « Nouveautés » avec une fausse 
 | `src/main/store.js` | Réglages et journal des mises à jour |
 | `src/main/mise-a-jour.js` | La mise à jour automatique du logiciel (electron-updater) |
 | `src/main/changelog.js` | Lecture de `CHANGELOG.md` et comparaison de versions |
+| `src/main/details.js` | Détail d’une version du site, lu dans le BO et revalidé |
 | `src/preload/shell-preload.js` | Le pont, limité, entre l’interface et le moteur |
 | `src/renderer/` | L’interface (accueil, rail, réglages), aux couleurs du site |
 

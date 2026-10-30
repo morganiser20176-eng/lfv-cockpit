@@ -9,6 +9,19 @@ Numérotation `MAJEUR.MINEUR.CORRECTIF` :
 - **MINEUR** (0.2.1 → 0.3.0) : nouvelles fonctions ;
 - **MAJEUR** (0.3.0 → 1.0.0) : changement important de fonctionnement.
 
+## [0.3.0] – 2026-10-30
+
+### Nouveautés
+
+- **Détail de chaque mise à jour du site** : pour chaque nouvelle version détectée en recette ou en production, LFV Cockpit montre précisément ce qui a changé. Pour chaque changement : son titre, son résumé et ses lignes « Changelog utilisateur », y compris celles du BO.
+- **Liens directs « Où voir »** : un bouton par page concernée ouvre directement le bon endroit, sur le site ou dans le BO de l’environnement mis à jour.
+- Le panneau des mises à jour de l’accueil et le bandeau de nouvelle version résument le premier changement et ouvrent le détail.
+
+### Améliorations
+
+- Le détail est lu dans le BO avec votre passkey : il n’est jamais public. Si la session BO est fermée, il s’affiche tout seul dès que vous vous reconnectez.
+- La confirmation avant « Déploiement production » s’applique aussi aux liens du détail.
+
 ## [0.2.0] – 2026-10-30
 
 ### Nouveautés

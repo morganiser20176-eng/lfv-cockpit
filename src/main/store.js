@@ -82,9 +82,25 @@ class Store {
   }
 
   ajouterAuJournal(entree) {
-    this.donnees.journal.unshift({ quand: new Date().toISOString(), ...entree });
+    const quand = new Date().toISOString();
+    const complete = { id: `${quand}-${Math.random().toString(36).slice(2, 8)}`, quand, ...entree };
+    this.donnees.journal.unshift(complete);
     this.donnees.journal.length = Math.min(this.donnees.journal.length, TAILLE_MAX_JOURNAL);
     this.enregistrer();
+    return complete;
+  }
+
+  entree(id) {
+    return this.donnees.journal.find((e) => e.id === id) || null;
+  }
+
+  /** Complète une entrée du journal (ex. : le détail d'une version arrivé après coup). */
+  modifierEntree(id, changements) {
+    const e = this.entree(id);
+    if (!e) return null;
+    Object.assign(e, changements);
+    this.enregistrer();
+    return e;
   }
 
   enregistrer() {

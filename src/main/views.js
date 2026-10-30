@@ -62,7 +62,7 @@ class GestionnaireDeVues extends EventEmitter {
     });
   }
 
-  vue(id) {
+  vue(id, adresseInitiale) {
     if (this.vues[id]) return this.vues[id];
     const dest = this.destinations[id];
     const env = this.environnements[dest.env];
@@ -114,7 +114,7 @@ class GestionnaireDeVues extends EventEmitter {
     wc.on('before-input-event', (evt, input) => this.emit('touche', evt, input));
 
     this.vues[id] = vue;
-    wc.loadURL(dest.accueil);
+    wc.loadURL(adresseInitiale || dest.accueil);
     return vue;
   }
 
@@ -124,6 +124,23 @@ class GestionnaireDeVues extends EventEmitter {
     } catch {
       return false;
     }
+  }
+
+  /**
+   * Ouvre une adresse de l'environnement dans une vue (liens « Où voir » du
+   * détail d'une version). Jamais une adresse d'un autre environnement, et
+   * la confirmation avant « Déploiement production » s'applique aussi ici.
+   */
+  ouvrirAdresse(id, url) {
+    const dest = this.destinations[id];
+    if (!dest || !estDansEnvironnement(url, this.environnements[dest.env])) return false;
+    if (dest.type === 'bo' && this.reglages().confirmerDeploiementProduction && this.demandeConfirmationDeploiement(url)) {
+      this.emit('confirmer-deploiement', { destination: id, url });
+      return true;
+    }
+    if (this.vues[id]) this.vues[id].webContents.loadURL(url);
+    else this.vue(id, url);
+    return true;
   }
 
   confirmerDeploiement(destination, url) {

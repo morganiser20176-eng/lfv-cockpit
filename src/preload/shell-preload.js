@@ -23,6 +23,8 @@ contextBridge.exposeInMainWorld('cockpit', {
   nouveautesVues: () => ipcRenderer.invoke('nouveautes-vues'),
   majVerifier: () => ipcRenderer.invoke('maj-verifier'),
   majInstaller: () => ipcRenderer.invoke('maj-installer'),
+  reessayerDetail: (id) => ipcRenderer.invoke('reessayer-detail', id),
+  ouvrirChemin: (env, chemin) => ipcRenderer.invoke('ouvrir-chemin', env, chemin),
   surEtat: (rappel) => ipcRenderer.on('etat', (_e, etat) => rappel(etat)),
   surAller: (rappel) => ipcRenderer.on('aller', (_e, cible) => rappel(cible)),
 });

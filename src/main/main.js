@@ -2,13 +2,14 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const { app, BrowserWindow, ipcMain, Notification, clipboard, net, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, Notification, clipboard, net, session, shell } = require('electron');
 const { lireOrigines, construireEnvironnements, construireDestinations, estOuvrableEnExterne } = require('./environments');
 const { Store } = require('./store');
 const { GuetteurDeVersions } = require('./updates');
 const { GestionnaireDeVues } = require('./views');
 const { lireChangelog, comparerVersions } = require('./changelog');
 const { MiseAJour } = require('./mise-a-jour');
+const { chargerDetail, resumeDetail, CHEMIN } = require('./details');
 
 const RACINE = path.join(__dirname, '..');
 const environnements = construireEnvironnements(lireOrigines());
@@ -73,7 +74,10 @@ function demarrer() {
     destinations,
     reglages: () => store.reglages,
   });
-  vues.on('change', () => pousserEtat());
+  vues.on('change', () => {
+    surveillerConnexionsBo();
+    pousserEtat();
+  });
   vues.on('touche', raccourci);
   vues.on('confirmer-deploiement', (demande) => {
     confirmation = demande;
@@ -142,13 +146,66 @@ function surNouvelleVersion({ env, version, precedente, verdict }) {
   if (verdict === 'premiere') return;
   const etiquette = environnements[env].etiquette;
   const court = version.sha.slice(0, 7);
-  store.ajouterAuJournal({ env, evenement: `Nouvelle version ${court}`, statut: 'Pages rechargées', precedente: precedente && precedente.sha });
+  const entree = store.ajouterAuJournal({
+    env,
+    sha: version.sha,
+    evenement: `Nouvelle version ${court}`,
+    statut: 'Pages rechargées',
+    precedente: precedente && precedente.sha,
+    detail: { statut: 'chargement' },
+  });
   if (store.reglages.rechargerApresDeploiement) vues.nouvelleVersion(env);
   if (store.reglages.notificationsWindows && Notification.isSupported()) {
     new Notification({ title: `${etiquette} · nouvelle version en ligne`, body: `Version ${court}. LFV Cockpit a rechargé les pages.`, silent: true }).show();
   }
-  afficherAvis({ ton: 'maj', texte: `Nouvelle version déployée sur la ${environnements[env].libelle.toLowerCase()} (${court}). Pages rechargées automatiquement.`, env });
+  afficherAvis({ ton: 'maj', texte: `Nouvelle version déployée sur la ${environnements[env].libelle.toLowerCase()} (${court}). Pages rechargées automatiquement.`, env, entreeId: entree.id });
+  chargerDetailEntree(entree.id);
   pousserEtat();
+}
+
+// ---------------------------------------------------------------------------
+// Détail des versions (quelles PR, où les voir) : lu dans le BO, avec la
+// session de l'environnement. Seule la version EN LIGNE a un détail.
+// ---------------------------------------------------------------------------
+
+async function chargerDetailEntree(id) {
+  const entree = store.entree(id);
+  if (!entree || !entree.sha || !environnements[entree.env]) return;
+  store.modifierEntree(id, { detail: { statut: 'chargement' } });
+  pousserEtat();
+  const env = environnements[entree.env];
+  const ses = session.fromPartition(env.partition);
+  const resultat = await chargerDetail((url, init) => ses.fetch(url, init), env.origine);
+  let detail = resultat.detail ? { statut: 'ok', ...resultat.detail } : { statut: resultat.statut };
+  // Le BO ne décrit que la version en ligne : un autre déploiement est passé depuis.
+  if (detail.statut === 'ok' && !detail.sha.startsWith(entree.sha.slice(0, 7))) detail = { statut: 'perime' };
+  store.modifierEntree(id, { detail });
+  const resume = resumeDetail(detail);
+  if (resume && avis && avis.entreeId === id) avis = { ...avis, resume };
+  pousserEtat();
+}
+
+/** Dernière entrée « nouvelle version » d'un environnement, si son détail reste à obtenir. */
+function entreeEnAttenteDeDetail(envId) {
+  const derniere = store.journal.find((e) => e.env === envId && e.sha);
+  if (!derniere || !derniere.detail || !['connexion', 'erreur'].includes(derniere.detail.statut)) return null;
+  return derniere;
+}
+
+const connexionsBo = { prod: null, recette: null };
+
+/** Dès qu'un BO vient d'être ouvert avec succès, on récupère le détail qui l'attendait. */
+function surveillerConnexionsBo() {
+  const etatVues = vues.etat().destinations;
+  for (const [envId, boId] of [['prod', 'prod-bo'], ['recette', 'rec-bo']]) {
+    const v = etatVues[boId];
+    const connecte = Boolean(v && v.ouverte && !v.chargement && !v.connexionRequise);
+    if (connecte && connexionsBo[envId] !== true) {
+      const entree = entreeEnAttenteDeDetail(envId);
+      if (entree) chargerDetailEntree(entree.id);
+    }
+    connexionsBo[envId] = connecte;
+  }
 }
 
 function afficherAvis(nouvelAvis) {
@@ -279,4 +336,15 @@ function brancherIpc() {
   ipcMain.handle('maj-verifier', () => miseAJour.verifier());
 
   ipcMain.handle('maj-installer', () => miseAJour.installerMaintenant());
+
+  ipcMain.handle('reessayer-detail', (_e, id) => chargerDetailEntree(id));
+
+  // Lien « Où voir » : un chemin relatif, ouvert dans le site ou le BO du bon environnement.
+  ipcMain.handle('ouvrir-chemin', (_e, envId, chemin) => {
+    const env = environnements[envId];
+    if (!env || typeof chemin !== 'string' || !CHEMIN.test(chemin)) return null;
+    const bo = /^\/admin(\/|$|\?)/.test(chemin);
+    const destination = envId === 'prod' ? (bo ? 'prod-bo' : 'prod-site') : (bo ? 'rec-bo' : 'rec-site');
+    return vues.ouvrirAdresse(destination, `${env.origine}${chemin}`) ? destination : null;
+  });
 }

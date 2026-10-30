@@ -98,7 +98,7 @@
           </div>
           <div class="panneau__defile">
             <table class="panneau__table">
-              <thead><tr><th>HEURE</th><th>ENVIRONNEMENT</th><th>ÉVÉNEMENT</th><th>STATUT</th></tr></thead>
+              <thead><tr><th>HEURE</th><th>ENVIRONNEMENT</th><th>ÉVÉNEMENT</th><th>STATUT</th><th><span class="invisible">Détail</span></th></tr></thead>
               <tbody id="journal"></tbody>
             </table>
             <p class="panneau__vide" id="journal-vide" hidden>Aucune mise à jour détectée pour l’instant. LFV Cockpit surveille la prod et la recette en continu.</p>
@@ -131,6 +131,7 @@
         <div class="avis" id="avis" role="status" hidden>
           <span class="point" aria-hidden="true"></span>
           <span class="avis__texte" id="avis-texte"></span>
+          <button class="avis__action" id="avis-detail" hidden>Voir le détail</button>
           <button class="avis__fermer" id="avis-fermer" aria-label="Fermer ce message">×</button>
         </div>
         <div class="zone-web" id="zone-principale"></div>
@@ -167,6 +168,28 @@
             <button class="bouton" id="deploiement-annuler">Annuler</button>
           </div>
           <p class="confirmation__note">Cette confirmation reste valable 10 minutes.</p>
+        </div>
+      </section>
+
+      <!-- DÉTAIL D'UNE MISE À JOUR DU SITE -->
+      <section class="ecran ecran--detail" id="ecran-detail" hidden>
+        <div class="detail">
+          <button class="detail__retour" id="detail-retour">← Retour à l’accueil</button>
+          <div class="detail__entete">
+            <span class="puce" id="detail-puce"></span>
+            <h1 class="detail__titre" id="detail-titre"></h1>
+          </div>
+          <p class="detail__sous" id="detail-sous"></p>
+          <div class="detail__etat" id="detail-etat" hidden>
+            <span class="detail__etat-texte" id="detail-etat-texte"></span>
+            <button class="bouton bouton--or" id="detail-ouvrir-bo" hidden>Ouvrir le BO</button>
+            <button class="bouton" id="detail-reessayer" hidden>Réessayer</button>
+          </div>
+          <div class="changements" id="changements"></div>
+          <section class="carte" id="autres" hidden>
+            <h2 class="carte__titre">Autres changements</h2>
+            <ul class="version__liste" id="autres-liste"></ul>
+          </section>
         </div>
       </section>
 
