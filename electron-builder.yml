@@ -1,0 +1,32 @@
+appId: fr.lesfousvolants.cockpit
+productName: LFV Cockpit
+copyright: Les Fous Volants
+
+directories:
+  output: dist
+  buildResources: build
+
+files:
+  - package.json
+  - src/**/*
+
+win:
+  target: nsis
+  icon: build/icon.ico
+  artifactName: LFV-Cockpit-Setup-${version}.${ext}
+
+# Installation pour le compte Windows de l'utilisateur, sans droits administrateur.
+nsis:
+  oneClick: false
+  perMachine: false
+  allowElevation: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: LFV Cockpit
+  installerIcon: build/icon.ico
+  uninstallerIcon: build/icon.ico
+  uninstallDisplayName: LFV Cockpit
+  installerLanguages:
+    - fr_FR
+  language: "1036"

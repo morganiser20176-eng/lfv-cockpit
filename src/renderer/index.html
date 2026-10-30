@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'none'">
+<title>LFV Cockpit</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app">
+
+  <header class="titre">
+    <img src="assets/images/logo-lfv.webp" alt="" class="titre__logo">
+    <span class="titre__nom">LFV COCKPIT</span>
+    <span class="titre__fil" id="fil">Accueil</span>
+  </header>
+
+  <div class="corps">
+    <nav class="rail" aria-label="Navigation">
+      <img src="assets/images/logo-lfv.webp" alt="Les Fous Volants – Simulation, partage, aventure – Compagnie virtuelle" class="rail__logo">
+
+      <button class="rail__lien rail__lien--grand" data-aller="accueil">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>
+        <span>Accueil</span>
+      </button>
+
+      <div class="rail__groupe">
+        <div class="rail__entete rail__entete--prod"><span>PRODUCTION</span></div>
+        <button class="rail__lien" data-aller="prod-site"><span class="rail__lib">Site public</span><span class="pastille" data-pastille="prod-site"></span><kbd>Ctrl+1</kbd></button>
+        <button class="rail__lien" data-aller="prod-bo"><span class="rail__lib">Back-office</span><span class="pastille" data-pastille="prod-bo"></span><kbd>Ctrl+2</kbd></button>
+      </div>
+
+      <div class="rail__groupe">
+        <div class="rail__entete rail__entete--recette"><span>RECETTE</span></div>
+        <button class="rail__lien" data-aller="rec-site"><span class="rail__lib">Site public</span><span class="pastille" data-pastille="rec-site"></span><kbd>Ctrl+3</kbd></button>
+        <button class="rail__lien" data-aller="rec-bo"><span class="rail__lib">Back-office</span><span class="pastille" data-pastille="rec-bo"></span><kbd>Ctrl+4</kbd></button>
+      </div>
+
+      <div class="rail__groupe">
+        <button class="rail__outil" data-aller="comparer">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16"/></svg>
+          <span>Comparer prod / recette</span><kbd>Ctrl+5</kbd>
+        </button>
+        <button class="rail__outil" data-aller="reglages">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>
+          <span>Réglages</span>
+        </button>
+      </div>
+
+      <div class="rail__espace"></div>
+
+      <div class="profil">
+        <img src="assets/images/avatar.webp" alt="Votre avatar : le Fou Volant en uniforme de commandant" class="profil__photo">
+        <div class="profil__texte">
+          <span class="profil__nom">Le Fou Volant</span>
+          <span class="profil__role">Commandant · Admin</span>
+        </div>
+      </div>
+    </nav>
+
+    <main class="contenu">
+
+      <!-- ACCUEIL -->
+      <section class="ecran ecran--accueil" id="ecran-accueil">
+        <div class="hero">
+          <div class="hero__voile">
+            <span class="hero__veille"><span class="point point--live" aria-hidden="true"></span><span id="hero-veille">SURVEILLANCE ACTIVE</span></span>
+            <h1 class="hero__titre">Bon retour à bord, <span class="or">commandant</span></h1>
+            <p class="hero__texte" id="hero-texte">Vérification de la prod et de la recette…</p>
+            <span class="hero__legende">LS4 / MER DE NUAGES / ALPES</span>
+          </div>
+        </div>
+
+        <h2 class="surtitre">VOS DESTINATIONS</h2>
+        <div class="tuiles" id="tuiles"></div>
+
+        <section class="panneau" aria-labelledby="panneau-titre">
+          <div class="panneau__entete">
+            <h2 id="panneau-titre" class="panneau__titre">MISES À JOUR</h2>
+            <span class="panneau__sous">UPDATES</span>
+            <span class="panneau__espace"></span>
+            <span class="panneau__verif" id="panneau-verif"></span>
+          </div>
+          <div class="panneau__defile">
+            <table class="panneau__table">
+              <thead><tr><th>HEURE</th><th>ENVIRONNEMENT</th><th>ÉVÉNEMENT</th><th>STATUT</th></tr></thead>
+              <tbody id="journal"></tbody>
+            </table>
+            <p class="panneau__vide" id="journal-vide" hidden>Aucune mise à jour détectée pour l’instant. LFV Cockpit surveille la prod et la recette en continu.</p>
+          </div>
+        </section>
+      </section>
+
+      <!-- DESTINATION (site ou BO) -->
+      <section class="ecran ecran--web" id="ecran-destination" hidden>
+        <div class="barre">
+          <button class="barre__bouton" data-nav="reculer" aria-label="Page précédente"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
+          <button class="barre__bouton" data-nav="avancer" aria-label="Page suivante"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></button>
+          <button class="barre__bouton" data-nav="recharger" aria-label="Recharger"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button>
+          <button class="barre__bouton" data-nav="accueil" aria-label="Page d’accueil de cet environnement"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></button>
+          <div class="adresse">
+            <span class="puce" id="adresse-puce">PROD</span>
+            <span class="adresse__url" id="adresse-url"></span>
+            <span class="adresse__charge" id="adresse-charge" hidden>chargement…</span>
+          </div>
+          <span class="synchro"><span class="point point--live" aria-hidden="true"></span>SYNCHRO AUTO</span>
+          <button class="barre__texte" id="copier-url">Copier le lien</button>
+          <button class="barre__texte" id="ouvrir-externe">Ouvrir dans le navigateur</button>
+        </div>
+        <div class="bandeau" id="bandeau"><strong id="bandeau-titre"></strong><span id="bandeau-texte"></span></div>
+        <div class="avis avis--attente" id="attente" hidden>
+          <span class="point point--live" aria-hidden="true"></span>
+          <span class="avis__texte">Une nouvelle version est en ligne. Rechargement en attente : vous êtes en train de saisir.</span>
+          <button class="avis__action" id="recharger-maintenant">Recharger maintenant</button>
+        </div>
+        <div class="avis" id="avis" role="status" hidden>
+          <span class="point" aria-hidden="true"></span>
+          <span class="avis__texte" id="avis-texte"></span>
+          <button class="avis__fermer" id="avis-fermer" aria-label="Fermer ce message">×</button>
+        </div>
+        <div class="zone-web" id="zone-principale"></div>
+      </section>
+
+      <!-- COMPARER -->
+      <section class="ecran ecran--web" id="ecran-comparer" hidden>
+        <form class="barre" id="form-comparer">
+          <span class="barre__titre">Comparer prod / recette</span>
+          <label for="chemin" class="barre__aide">Même page des deux côtés :</label>
+          <input id="chemin" class="chemin" type="text" value="/" spellcheck="false" autocomplete="off">
+          <button class="barre__texte" type="submit">Afficher</button>
+        </form>
+        <div class="comparer">
+          <div class="comparer__colonne comparer__colonne--prod">
+            <div class="comparer__entete"><span class="puce puce--prod">PROD</span><span class="comparer__url" id="cmp-url-prod"></span></div>
+            <div class="zone-web" id="zone-gauche"></div>
+          </div>
+          <div class="comparer__colonne comparer__colonne--recette">
+            <div class="comparer__entete"><span class="puce puce--recette">RECETTE</span><span class="comparer__url" id="cmp-url-rec"></span></div>
+            <div class="zone-web" id="zone-droite"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CONFIRMATION DÉPLOIEMENT PRODUCTION -->
+      <section class="ecran ecran--confirmation" id="ecran-confirmation" hidden>
+        <div class="confirmation">
+          <span class="puce puce--prod">PRODUCTION</span>
+          <h1 class="confirmation__titre">Ouvrir le déploiement en production ?</h1>
+          <p>Cette page sert à mettre en ligne une nouvelle version du vrai site <strong>lesfousvolants.fr</strong>. Continuez seulement si la recette a été vérifiée.</p>
+          <div class="confirmation__actions">
+            <button class="bouton bouton--or" id="deploiement-ok">Ouvrir la page de déploiement</button>
+            <button class="bouton" id="deploiement-annuler">Annuler</button>
+          </div>
+          <p class="confirmation__note">Cette confirmation reste valable 10 minutes.</p>
+        </div>
+      </section>
+
+      <!-- RÉGLAGES -->
+      <section class="ecran ecran--reglages" id="ecran-reglages" hidden>
+        <div class="reglages">
+          <h1 class="reglages__titre">Réglages</h1>
+
+          <div class="reglages__grille">
+            <section class="carte">
+              <h2 class="carte__titre"><span class="point point--live" aria-hidden="true"></span>Mises à jour automatiques</h2>
+              <label class="option" for="r-deploiement"><input type="checkbox" id="r-deploiement" data-reglage="rechargerApresDeploiement"><span><strong>Recharger quand une nouvelle version est déployée</strong><small>Prod et recette, site et BO. Détecté grâce au fichier de version publié à chaque déploiement.</small></span></label>
+              <label class="option" for="r-enregistrement"><input type="checkbox" id="r-enregistrement" data-reglage="rechargerSiteApresEnregistrement"><span><strong>Recharger le site après un enregistrement dans le BO</strong><small>Vous modifiez dans le BO prod : le site prod est à jour quand vous y retournez. Idem en recette.</small></span></label>
+              <label class="option" for="r-saisie"><input type="checkbox" id="r-saisie" data-reglage="jamaisRechargerPendantSaisie"><span><strong>Ne jamais recharger un BO pendant une saisie</strong><small>Un bandeau propose de recharger quand vous avez fini. Rien n’est perdu.</small></span></label>
+              <div class="option option--ligne">
+                <label for="r-intervalle"><strong>Vérifier toutes les</strong></label>
+                <select id="r-intervalle">
+                  <option value="30">30 secondes</option>
+                  <option value="60">60 secondes</option>
+                  <option value="300">5 minutes</option>
+                </select>
+              </div>
+              <label class="option" for="r-notif"><input type="checkbox" id="r-notif" data-reglage="notificationsWindows"><span><strong>Me prévenir par une notification Windows</strong></span></label>
+              <button class="bouton" id="verifier-maintenant">Vérifier maintenant</button>
+            </section>
+
+            <section class="carte">
+              <h2 class="carte__titre">Où partent mes modifications ?</h2>
+              <p class="carte__texte">LFV Cockpit affiche les vrais back-offices. Chaque enregistrement part directement sur l’environnement ouvert. Rien n’est gardé dans le logiciel, il n’y a rien à synchroniser.</p>
+              <div class="trajet trajet--prod"><span class="puce puce--prod">BO PROD</span><span class="trajet__fleche">→</span><span class="mono" id="trajet-prod"></span><small>En ligne immédiatement pour tous les visiteurs.</small></div>
+              <div class="trajet trajet--recette"><span class="puce puce--recette">BO RECETTE</span><span class="trajet__fleche">→</span><span class="mono" id="trajet-recette"></span><small>Visible seulement sur la recette, pour tester.</small></div>
+              <label class="option" for="r-deploiement-prod"><input type="checkbox" id="r-deploiement-prod" data-reglage="confirmerDeploiementProduction"><span><strong>Demander confirmation avant « Déploiement production »</strong><small>Un écran d’avertissement s’affiche avant d’ouvrir cette page du BO.</small></span></label>
+            </section>
+          </div>
+
+          <div class="reglages__grille" id="sessions"></div>
+
+          <section class="carte carte--depart">
+            <h2 class="carte__titre carte__titre--ambre">Première connexion</h2>
+            <ol class="etapes">
+              <li>Dans Chrome, ouvrez le BO puis <strong>Mon compte › Mes passkeys › Ajouter</strong>.</li>
+              <li>Choisissez <strong>Windows Hello</strong> comme emplacement et nommez-la « LFV Cockpit – ce PC ».</li>
+              <li>Dans LFV Cockpit, ouvrez le BO et cliquez sur la connexion par passkey.</li>
+              <li>Recommencez sur le BO recette : sa base est séparée, il lui faut sa propre passkey.</li>
+            </ol>
+            <p class="carte__note">Une passkey enregistrée sur votre téléphone marche aussi, via le code QR proposé par Windows.</p>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <footer class="etat">
+    <span id="etat-versions">Vérification en cours…</span>
+    <span class="etat__espace"></span>
+    <span class="mono" id="etat-appli"></span>
+  </footer>
+</div>
+<script src="app.js"></script>
+</body>
+</html>

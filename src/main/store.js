@@ -1,0 +1,87 @@
+'use strict';
+
+// Réglages et journal du logiciel, dans un fichier JSON du dossier de
+// l'utilisateur Windows. Rien de secret ici : les sessions (cookies) sont
+// gardées par Chromium, chiffrées avec le compte Windows.
+
+const fs = require('node:fs');
+const path = require('node:path');
+
+const REGLAGES_PAR_DEFAUT = {
+  rechargerApresDeploiement: true,
+  rechargerSiteApresEnregistrement: true,
+  jamaisRechargerPendantSaisie: true,
+  intervalleVerificationSecondes: 60,
+  notificationsWindows: true,
+  confirmerDeploiementProduction: true,
+};
+
+const INTERVALLES_AUTORISES = [30, 60, 300];
+const TAILLE_MAX_JOURNAL = 50;
+
+function normaliserReglages(brut) {
+  const r = { ...REGLAGES_PAR_DEFAUT };
+  for (const cle of Object.keys(REGLAGES_PAR_DEFAUT)) {
+    if (brut && typeof brut[cle] === typeof REGLAGES_PAR_DEFAUT[cle]) r[cle] = brut[cle];
+  }
+  if (!INTERVALLES_AUTORISES.includes(r.intervalleVerificationSecondes)) {
+    r.intervalleVerificationSecondes = REGLAGES_PAR_DEFAUT.intervalleVerificationSecondes;
+  }
+  return r;
+}
+
+class Store {
+  constructor(dossier) {
+    this.fichier = path.join(dossier, 'lfv-cockpit.json');
+    this.donnees = { reglages: { ...REGLAGES_PAR_DEFAUT }, versions: {}, journal: [] };
+    try {
+      const brut = JSON.parse(fs.readFileSync(this.fichier, 'utf8'));
+      this.donnees = {
+        reglages: normaliserReglages(brut.reglages),
+        versions: brut.versions && typeof brut.versions === 'object' ? brut.versions : {},
+        journal: Array.isArray(brut.journal) ? brut.journal.slice(0, TAILLE_MAX_JOURNAL) : [],
+      };
+    } catch {
+      // Premier lancement ou fichier illisible : on repart des valeurs par défaut.
+    }
+  }
+
+  get reglages() {
+    return this.donnees.reglages;
+  }
+
+  modifierReglages(changements) {
+    this.donnees.reglages = normaliserReglages({ ...this.donnees.reglages, ...changements });
+    this.enregistrer();
+    return this.donnees.reglages;
+  }
+
+  version(env) {
+    return this.donnees.versions[env] || null;
+  }
+
+  memoriserVersion(env, version) {
+    this.donnees.versions[env] = version;
+    this.enregistrer();
+  }
+
+  get journal() {
+    return this.donnees.journal;
+  }
+
+  ajouterAuJournal(entree) {
+    this.donnees.journal.unshift({ quand: new Date().toISOString(), ...entree });
+    this.donnees.journal.length = Math.min(this.donnees.journal.length, TAILLE_MAX_JOURNAL);
+    this.enregistrer();
+  }
+
+  enregistrer() {
+    // Écriture atomique : un fichier temporaire puis un renommage.
+    fs.mkdirSync(path.dirname(this.fichier), { recursive: true });
+    const tmp = `${this.fichier}.tmp`;
+    fs.writeFileSync(tmp, JSON.stringify(this.donnees, null, 2));
+    fs.renameSync(tmp, this.fichier);
+  }
+}
+
+module.exports = { Store, REGLAGES_PAR_DEFAUT, INTERVALLES_AUTORISES, normaliserReglages };

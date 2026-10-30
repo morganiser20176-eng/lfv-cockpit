@@ -1,0 +1,19 @@
+{
+  "name": "lfv-cockpit",
+  "productName": "LFV Cockpit",
+  "version": "0.1.0",
+  "description": "Les sites et back-offices Les Fous Volants (prod et recette) dans une seule fenêtre.",
+  "author": "Les Fous Volants",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test \"test/**/*.test.js\"",
+    "dist:win": "electron-builder --win nsis --publish never"
+  },
+  "devDependencies": {
+    "electron": "44.7.1",
+    "electron-builder": "26.17.0"
+  }
+}
